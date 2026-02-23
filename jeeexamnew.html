@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>J CBT exam</title>
+  <style>
+    :root{
+      --bg:#0f1113; --panel:#121417; --muted:#9aa3ad; --text:#e6eef6;
+      --accent:#2196f3; --accent-2:#ff9800; --positive:#4caf50; --danger:#e53935;
+      --purple:#9c27b0; --warning:#ffb300; --glass:rgba(255,255,255,0.04);
+    }
+    html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{padding:10px 14px;background:linear-gradient(90deg,#0b0d0f,#121417);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+    header .brand{display:flex;align-items:center;gap:10px}
+    header .brand .title{font-weight:800;color:var(--accent-2);letter-spacing:.4px}
+    header .timer{font-weight:700;background:var(--panel);padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05)}
+
+    /* nav */
+    nav{display:flex;gap:10px;padding:10px;justify-content:center;background:var(--panel)}
+    .nav-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:10px 16px;border-radius:10px;color:var(--muted);cursor:pointer;font-weight:600}
+    .nav-btn.active{background:linear-gradient(180deg,var(--accent) 10%,var(--accent));color:#021826;border:none;box-shadow:0 6px 18px rgba(33,150,243,0.18)}
+
+    .container{max-width:1200px;margin:16px auto;padding:0 12px}
+    .page{display:none}
+    .page.active{display:block}
+    .panel{background:var(--panel);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);box-shadow:0 6px 30px rgba(0,0,0,0.5)}
+
+    /* upload/select UI (kept from your original) */
+    .canvas-wrap{position:relative;max-width:720px;margin:14px auto}
+    canvas{display:block;max-width:100%;height:auto;border-radius:8px;border:1px solid rgba(255,255,255,0.06)}
+    .crop-rect{position:absolute;pointer-events:none;border:2px solid rgba(33,150,243,0.95);background:rgba(33,150,243,0.12);border-radius:6px}
+
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .big-btn{padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+    .btn-blue{background:var(--accent);color:#021826}
+    .btn-green{background:var(--positive);color:#0c2f0f}
+    .btn-red{background:var(--danger);color:#fff}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--muted)}
+    .big-btn:hover{filter:brightness(1.08);transform:translateY(-1px);transition:all 140ms ease}
+    .input{width:140px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:#0f1113;color:var(--text)}
+
+    .questions-grid{display:flex;flex-direction:column;gap:12px}
+    .q-card{display:flex;gap:12px;align-items:flex-start;background:var(--glass);padding:10px;border-radius:10px}
+    .q-previews{display:flex;gap:8px;flex-wrap:wrap}
+    .q-previews img{width:160px;height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.06)}
+
+    /* === CBT EXAM LAYOUT (JEE/ginger-webs style) === */
+    .exam-wrap{display:grid;grid-template-columns:1fr 360px;gap:16px}
+    .exam-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .exam-topbar{display:flex;gap:8px;align-items:center}
+    .pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.06);color:#cfe7ff;font-weight:600}
+
+    /* section tabs */
+    .section-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+    .section-tab{padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.06);cursor:pointer;user-select:none;border:1px solid transparent}
+    .section-tab.active{background:linear-gradient(180deg,#1f2530,#111722);border-color:rgba(255,255,255,0.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06)}
+
+    /* question box */
+    .qbox{background:#0c1016;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px}
+    .q-images{display:flex;flex-direction:column;gap:10px}
+    .q-images img{max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.06)}
+    .workspace{margin-top:10px}
+    textarea.workpad{width:100%;min-height:110px;background:#0a0d12;border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:var(--text);padding:10px}
+
+    /* answer widgets */
+    .answer-area{display:grid;gap:10px;margin-top:10px}
+    .opt-row{display:flex;gap:10px;flex-wrap:wrap}
+    .opt{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;cursor:pointer}
+    .num-input{display:flex;gap:8px;align-items:center}
+    .num-input input{width:120px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:#0b0e13;color:var(--text)}
+    .keypad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+    .keypad button{padding:8px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:var(--text);cursor:pointer}
+
+    /* Palette panel */
+    .side{position:sticky;top:64px}
+    .legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+    .legend .it{display:flex;gap:8px;align-items:center}
+    .dot{width:12px;height:12px;border-radius:3px}
+    .dot.visited{background:#607d8b}
+    .dot.not-answered{background:var(--danger)}
+    .dot.answered{background:var(--positive)}
+    .dot.marked{background:var(--purple)}
+    .dot.ans-marked{background:linear-gradient(45deg,var(--purple),var(--positive))}
+
+    .palette{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+    .pbtn{border:none;border-radius:8px;padding:10px 0;font-weight:700;cursor:pointer;background:#243140;color:#cfe8ff;border:1px solid rgba(255,255,255,0.06)}
+    .pbtn[data-status="NV"]{background:#37474f;color:#cfe8ff}
+    .pbtn[data-status="NA"]{background:#40282a;color:#ffd3d3}
+    .pbtn[data-status="A"]{background:#263a2a;color:#d6ffd9}
+    .pbtn[data-status="M"]{background:#392342;color:#efcdfb}
+    .pbtn[data-status="AM"]{background:linear-gradient(45deg,#392342,#233a2a);color:#fff}
+    .pbtn.active{outline:2px solid var(--accent)}
+
+    .exam-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
+
+    /* modal (instructions + zoom reuse) */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:9999}
+    .modal.show{display:flex}
+    .modal-card{max-width:920px;max-height:90vh;overflow:auto;background:linear-gradient(180deg,#0b0d0f,#0f1113);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)}
+    .modal h3{margin:6px 0}
+
+    @media (max-width:960px){
+      .exam-wrap{grid-template-columns:1fr}
+      .side{position:static}
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#2dd7c4)"></div>
+      <div class="title">J CBT practice</div>
+    </div>
+    <div class="timer" id="globalTimer">03:00:00</div>
+  </header>
+
+  <nav>
+    <div style="display:flex;gap:10px;justify-content:center;width:100%">
+      <button class="nav-btn active" data-page="upload">1 • Upload</button>
+      <button class="nav-btn" data-page="select">2 • Select</button>
+      <button class="nav-btn" data-page="exam">3 • Exam</button>
+      <button class="nav-btn" data-page="report">4 • Report</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- ========== UPLOAD ========== -->
+    <section id="upload" class="page active">
+      <div class="panel">
+        <h3>Upload PDF</h3>
+        <div class="controls" style="margin-top:8px">
+          <input id="fileInput" type="file" accept="application/pdf" />
+          <div style="flex:1"></div>
+          <button class="big-btn btn-blue" id="gotoSelect">Go to Select</button>
+        </div>
+        <p style="color:var(--muted);margin-top:8px">Upload a paper. We'll render pages so you can crop questions.</p>
+      </div>
+    </section>
+
+    <!-- ========== SELECT (crop questions) ========== -->
+    <section id="select" class="page">
+      <div class="panel">
+        <h3>Select Questions — Crop & Group</h3>
+        <div class="controls" style="margin-top:8px;justify-content:space-between;align-items:center">
+          <div>
+            <button class="big-btn btn-ghost" id="prev">Prev</button>
+            <button class="big-btn btn-ghost" id="next">Next</button>
+            <span style="margin-left:10px;color:var(--muted)">Page: <span id="pageNum">0</span>/<span id="pageCount">0</span></span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <label style="color:var(--muted)"><input type="checkbox" id="groupMode"> Group Mode</label>
+            <button class="big-btn btn-blue" id="groupAdd">Add Grouped Crop as Question</button>
+            <label style="color:var(--muted)">Default time (mins): <input id="defaultTime" type="number" value="2" style="width:64px;margin-left:6px"></label>
+            <button class="big-btn btn-green" id="startExam">Start Exam</button>
+          </div>
+        </div>
+        <div class="canvas-wrap" style="margin-top:12px;">
+          <canvas id="pdfCanvas"></canvas>
+          <div id="cropBox" class="crop-rect" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <h3>Selected Questions</h3>
+        <div id="questionsList" class="questions-grid"></div>
+      </div>
+    </section>
+
+    <!-- ========== EXAM (JEE CBT mimic) ========== -->
+    <section id="exam" class="page">
+      <div class="panel">
+        <div class="exam-header">
+          <div class="exam-topbar">
+            <span class="pill">Candidate: <strong id="candName">Guest</strong></span>
+            <span class="pill">Roll No: <strong>000000</strong></span>
+            <span class="pill">Section: <strong id="curSubject">General</strong></span>
+            <span class="pill">Q <strong id="curQIndex">0</strong>/<strong id="totalQ">0</strong></span>
+          </div>
+          <div class="pill">Time Left: <strong id="timerTop">03:00:00</strong></div>
+        </div>
+
+        <!-- section tabs like JEE -->
+        <div class="section-tabs" id="sectionTabs"></div>
+
+        <div class="exam-wrap">
+          <!-- LEFT: question + answer widgets -->
+          <div>
+            <div class="qbox">
+              <div class="q-images" id="qImages"></div>
+
+              <!-- Answer widgets (both MCQ + Integer available; use as per question) -->
+              <div class="answer-area" id="answerArea">
+                <div style="font-weight:700">Answer</div>
+                <div class="opt-row" id="mcqSingle">
+                  <label class="opt"><input type="radio" name="opt" value="A"> A</label>
+                  <label class="opt"><input type="radio" name="opt" value="B"> B</label>
+                  <label class="opt"><input type="radio" name="opt" value="C"> C</label>
+                  <label class="opt"><input type="radio" name="opt" value="D"> D</label>
+                </div>
+                <div class="opt-row" id="mcqMulti">
+                  <label class="opt"><input type="checkbox" value="A" class="mopt"> A</label>
+                  <label class="opt"><input type="checkbox" value="B" class="mopt"> B</label>
+                  <label class="opt"><input type="checkbox" value="C" class="mopt"> C</label>
+                  <label class="opt"><input type="checkbox" value="D" class="mopt"> D</label>
+                </div>
+                <div class="num-input" id="numAns">
+                  <span>Numeric:</span>
+                  <input type="text" id="numInput" placeholder="e.g. 3.1415"/>
+                  <div class="keypad" id="keypad">
+                    <button>7</button><button>8</button><button>9</button><button>-</button><button>CLR</button>
+                    <button>4</button><button>5</button><button>6</button><button>.</button><button>DEL</button>
+                    <button>1</button><button>2</button><button>3</button><button>00</button><button>±</button>
+                    <button>0</button><button>1/2</button><button>√</button><button>π</button><button>e</button>
+                  </div>
+                </div>
+                <div class="opt-row" id="ansTypeRow" style="margin-top:6px">
+                  <label class="opt"><input type="radio" name="atype" value="single" checked> Single Correct</label>
+                  <label class="opt"><input type="radio" name="atype" value="multi"> Multiple Correct</label>
+                  <label class="opt"><input type="radio" name="atype" value="num"> Numeric</label>
+                </div>
+              </div>
+
+              <!-- rough work area like JEE -->
+              <div class="workspace">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div style="font-weight:700;color:#cfe8ff">Rough Work (not evaluated)</div>
+                  <button class="btn-ghost big-btn" id="clearWork">Clear</button>
+                </div>
+                <textarea id="workpad" class="workpad" placeholder="Use this area like a scribble pad..."></textarea>
+              </div>
+
+              <div class="exam-actions">
+                <button class="big-btn btn-ghost" id="prevQ">Previous</button>
+                <button class="big-btn btn-blue" id="saveNext">Save & Next</button>
+                <button class="big-btn btn-ghost" id="markNext">Mark for Review & Next</button>
+                <button class="big-btn btn-ghost" id="clearResp">Clear Response</button>
+                <button class="big-btn btn-red" id="finishExam">Submit</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: palette + legend -->
+          <aside class="side">
+            <div class="panel" style="padding:10px">
+              <div style="font-weight:800;margin-bottom:6px">Question Palette</div>
+              <div class="legend">
+                <div class="it"><div class="dot visited"></div> <span style="color:#cfd8dc">Not Visited</span></div>
+                <div class="it"><div class="dot not-answered"></div> <span style="color:#ffcdd2">Not Answered</span></div>
+                <div class="it"><div class="dot answered"></div> <span style="color:#c8e6c9">Answered</span></div>
+                <div class="it"><div class="dot marked"></div> <span style="color:#f3c8ff">Marked for Review</span></div>
+                <div class="it"><div class="dot ans-marked"></div> <span>Ans & Marked</span></div>
+              </div>
+              <div class="palette" id="palette"></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== REPORT ========== -->
+    <section id="report" class="page">
+      <div class="panel">
+        <h3>Report</h3>
+        <div id="reportContent">No report yet — submit the exam to generate.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Instructions Modal -->
+  <div class="modal" id="instModal">
+    <div class="modal-card">
+      <h3>General Instructions</h3>
+      <ol style="line-height:1.6;color:#dfe8f3">
+        <li>There are multiple sections. Use the tabs to switch sections.</li>
+        <li>Each question has a <em>palette number</em> on the right. Colors indicate status: Not Visited, Not Answered, Answered, Marked for Review, Answered & Marked.</li>
+        <li>Use <strong>Save & Next</strong> to save your response and go forward.</li>
+        <li>Use <strong>Mark for Review & Next</strong> to flag a question and move ahead. If an answer is saved, it becomes <em>Answered & Marked</em>.</li>
+        <li><strong>Clear Response</strong> removes the saved answer for the current question.</li>
+        <li>Numeric questions accept integers/decimals. Keypad is provided.</li>
+        <li>Rough work area is for your convenience only; it will not be evaluated.</li>
+        <li>When time ends, the test auto-submits.</li>
+      </ol>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+        <button class="big-btn btn-ghost" id="closeInst">Close</button>
+        <button class="big-btn btn-green" id="agreeStart">I have read & Start Test</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zoom Modal (re-usable for image zoom if you want) -->
+  <div class="modal" id="zoomModal">
+    <div class="modal-card">
+      <img id="zoomImg" src="" alt="zoom" style="max-width:100%;max-height:80vh;border-radius:8px;display:block" />
+      <div style="display:flex;gap:8px;margin-top:8px;justify-content:center">
+        <button class="big-btn btn-ghost" id="zoomOut">-</button>
+        <button class="big-btn btn-ghost" id="zoomReset">Reset</button>
+        <button class="big-btn btn-ghost" id="zoomIn">+</button>
+        <button class="big-btn btn-red" id="closeZoom">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== CORE STATE =====
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const pages = document.querySelectorAll('.page');
+    navBtns.forEach(b=>b.addEventListener('click',()=>{navBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');pages.forEach(p=>p.classList.remove('active'));document.getElementById(b.dataset.page).classList.add('active');}));
+
+    // elements (shared)
+    const globalTimerEl = document.getElementById('globalTimer');
+    const timerTop = document.getElementById('timerTop');
+
+    // upload/select elements
+    const fileInput = document.getElementById('fileInput');
+    const pdfCanvas = document.getElementById('pdfCanvas');
+    const ctx = pdfCanvas.getContext('2d');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const pageNumSpan = document.getElementById('pageNum');
+    const pageCountSpan = document.getElementById('pageCount');
+    const cropBox = document.getElementById('cropBox');
+    const groupMode = document.getElementById('groupMode');
+    const groupAdd = document.getElementById('groupAdd');
+    const questionsList = document.getElementById('questionsList');
+    const defaultTimeInput = document.getElementById('defaultTime');
+    const startExamBtn = document.getElementById('startExam');
+    const gotoSelect = document.getElementById('gotoSelect');
+
+    // exam elements
+    const qImages = document.getElementById('qImages');
+    const curQIndex = document.getElementById('curQIndex');
+    const totalQ = document.getElementById('totalQ');
+    const curSubject = document.getElementById('curSubject');
+    const sectionTabs = document.getElementById('sectionTabs');
+    const palette = document.getElementById('palette');
+
+    const prevQBtn = document.getElementById('prevQ');
+    const saveNextBtn = document.getElementById('saveNext');
+    const markNextBtn = document.getElementById('markNext');
+    const clearRespBtn = document.getElementById('clearResp');
+    const finishExamBtn = document.getElementById('finishExam');
+
+    const workpad = document.getElementById('workpad');
+    const clearWork = document.getElementById('clearWork');
+
+    // answer widgets
+    const atypeRadios = document.querySelectorAll('input[name="atype"]');
+    const mcqSingle = document.getElementById('mcqSingle');
+    const mcqMulti = document.getElementById('mcqMulti');
+    const numAns = document.getElementById('numAns');
+    const numInput = document.getElementById('numInput');
+    const keypad = document.getElementById('keypad');
+
+    // instruction modal
+    const instModal = document.getElementById('instModal');
+    const agreeStart = document.getElementById('agreeStart');
+    const closeInst = document.getElementById('closeInst');
+
+    // zoom modal
+    const zoomModal = document.getElementById('zoomModal');
+    const zoomImg = document.getElementById('zoomImg');
+    const zoomIn = document.getElementById('zoomIn');
+    const zoomOut = document.getElementById('zoomOut');
+    const zoomReset = document.getElementById('zoomReset');
+    const closeZoom = document.getElementById('closeZoom');
+
+    // ===== PDF state & crop =====
+    let pdfDoc = null, currentPage = 1, pageCount = 0, scale = 1.0;
+    let isDragging = false, startX = 0, startY = 0; let tempGroup = [];
+
+    // Question model: { imgs:[dataurls], page:number, subject:string, timeMins:number }
+    let questions = [];
+
+    // Exam model
+    // status per question: NV (not visited) | NA (not answered) | A (answered) | M (marked) | AM (answered & marked)
+    let exam = { order: [], cur: 0, records: [], sectionIndex: 0, sections: [] };
+
+    // Global timer (180 min default)
+    let GLOBAL_SECONDS = 180*60; let globalInterval = null; let started = false;
+
+    // set worker for pdf.js
+    if (window.pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+
+    fileInput.addEventListener('change', async (e)=>{
+      const file = e.target.files[0]; if(!file) return; const data = await file.arrayBuffer();
+      const loading = pdfjsLib.getDocument({data}); pdfDoc = await loading.promise; pageCount = pdfDoc.numPages; pageCountSpan.textContent = pageCount; currentPage = 1; await renderPage(currentPage);
+    });
+
+    prevBtn.onclick = ()=>{ if(!pdfDoc) return; if(currentPage>1){ currentPage--; renderPage(currentPage);} };
+    nextBtn.onclick = ()=>{ if(!pdfDoc) return; if(currentPage<pageCount){ currentPage++; renderPage(currentPage);} };
+    gotoSelect.onclick = ()=>{ document.querySelector('button[data-page="select"]').click(); };
+
+    async function renderPage(n){
+      const page = await pdfDoc.getPage(n);
+      const desiredWidth = Math.min(720, window.innerWidth*0.92);
+      const vp = page.getViewport({ scale:1.0 }); const calcScale = desiredWidth/vp.width; scale = calcScale;
+      const viewport = page.getViewport({ scale });
+      pdfCanvas.width = Math.round(viewport.width); pdfCanvas.height = Math.round(viewport.height);
+      ctx.clearRect(0,0,pdfCanvas.width,pdfCanvas.height);
+      await page.render({ canvasContext: ctx, viewport }).promise; pageNumSpan.textContent = n;
+    }
+
+    async function renderCroppedFromPDF(pageNum,leftCss,topCss,wCss,hCss){
+      const page = await pdfDoc.getPage(pageNum);
+      const dpr = window.devicePixelRatio||1; const renderScale = Math.max(scale,1)*dpr*2;
+      const fullViewport = page.getViewport({ scale: renderScale });
+      const off = document.createElement('canvas'); off.width = Math.round(fullViewport.width); off.height = Math.round(fullViewport.height);
+      const offCtx = off.getContext('2d'); await page.render({ canvasContext: offCtx, viewport: fullViewport }).promise;
+      const displayRect = pdfCanvas.getBoundingClientRect(); const ratio = off.width/displayRect.width;
+      const sx = Math.round(leftCss*ratio), sy = Math.round(topCss*ratio), sw = Math.round(wCss*ratio), sh = Math.round(hCss*ratio);
+      const sxC = Math.max(0, Math.min(off.width-1, sx)), syC = Math.max(0, Math.min(off.height-1, sy));
+      const swC = Math.max(1, Math.min(off.width - sxC, sw)), shC = Math.max(1, Math.min(off.height - syC, sh));
+      const out = document.createElement('canvas'); out.width = swC; out.height = shC; out.getContext('2d').drawImage(off, sxC, syC, swC, shC, 0,0,swC,shC);
+      return out.toDataURL('image/png');
+    }
+
+    pdfCanvas.addEventListener('mousedown',(e)=>{
+      if(!pdfDoc) return; const r = pdfCanvas.getBoundingClientRect(); isDragging=true; startX=e.clientX-r.left; startY=e.clientY-r.top;
+      Object.assign(cropBox.style,{left:startX+'px',top:startY+'px',width:'0px',height:'0px',display:'block'});
+    });
+    window.addEventListener('mousemove',(e)=>{
+      if(!isDragging) return; const r = pdfCanvas.getBoundingClientRect(); const curX=e.clientX-r.left, curY=e.clientY-r.top;
+      const left=Math.min(curX,startX), top=Math.min(curY,startY); const w=Math.abs(curX-startX), h=Math.abs(curY-startY);
+      Object.assign(cropBox.style,{left:left+'px',top:top+'px',width:w+'px',height:h+'px'});
+    });
+    window.addEventListener('mouseup', async (e)=>{
+      if(!isDragging) return; isDragging=false; cropBox.style.display='none';
+      const r = pdfCanvas.getBoundingClientRect(); const endX=e.clientX-r.left, endY=e.clientY-r.top;
+      const left=Math.min(endX,startX), top=Math.min(endY,startY); const w=Math.abs(endX-startX), h=Math.abs(endY-startY);
+      if(w<12||h<12) return;
+      const url = await renderCroppedFromPDF(currentPage,left,top,w,h);
+      if(groupMode.checked){ tempGroup.push(url); renderTempGroupPreview(); }
+      else { questions.push({imgs:[url],page:currentPage,subject:'General',timeMins:parseInt(defaultTimeInput.value)||2}); renderQuestions(); }
+    });
+
+    groupAdd.addEventListener('click',()=>{
+      if(tempGroup.length===0){ alert('No grouped crops to add.'); return; }
+      questions.push({ imgs:[...tempGroup], page:currentPage, subject:'General', timeMins:parseInt(defaultTimeInput.value)||2 });
+      tempGroup=[]; renderTempGroupPreview(); renderQuestions();
+    });
+
+    function renderTempGroupPreview(){
+      const container = document.getElementById('questionsList'); const existing=document.getElementById('tempGroupPreview'); if(existing) existing.remove();
+      if(tempGroup.length===0) return; const card=document.createElement('div'); card.id='tempGroupPreview'; card.className='q-card';
+      const previews=document.createElement('div'); previews.className='q-previews'; tempGroup.forEach(u=>{ const img=new Image(); img.src=u; previews.appendChild(img); });
+      const meta=document.createElement('div'); meta.className='q-meta'; meta.innerHTML = `<div style="font-weight:700">Grouping (not yet added)</div><div style="margin-top:6px;color:var(--muted)">Click <strong>Add Grouped Crop</strong> to commit.</div>`;
+      card.appendChild(previews); card.appendChild(meta); container.prepend(card);
+    }
+
+    function renderQuestions(){
+      questionsList.innerHTML='';
+      questions.forEach((q,i)=>{
+        const card=document.createElement('div'); card.className='q-card';
+        const prev=document.createElement('div'); prev.className='q-previews'; q.imgs.forEach(u=>{const img=new Image(); img.src=u; prev.appendChild(img);});
+        const meta=document.createElement('div'); meta.className='q-meta';
+        meta.innerHTML = `
+          <div style='display:flex;justify-content:space-between;align-items:center'>
+            <div style='font-weight:700'>Question ${i+1} — Page ${q.page}</div>
+            <div style='display:flex;gap:8px'>
+              <button class='big-btn btn-ghost' data-i='${i}' onclick='removeQ(event)'>Delete</button>
+            </div>
+          </div>
+          <div style='margin-top:8px;display:flex;gap:8px;align-items:center'>
+            <div>Subject: <input class='input subj' data-i='${i}' value='${q.subject}'></div>
+            <div>Time (mins): <input class='input time' data-i='${i}' type='number' value='${q.timeMins}' style='width:72px'></div>
+            <button class='big-btn btn-blue' onclick='openZoomFromList(${i})'>🔍 Zoom</button>
+          </div>`;
+        card.appendChild(prev); card.appendChild(meta); questionsList.appendChild(card);
+      });
+      document.querySelectorAll('.subj').forEach(inp=>inp.onchange=(e)=>{questions[e.target.dataset.i].subject=e.target.value;});
+      document.querySelectorAll('.time').forEach(inp=>inp.onchange=(e)=>{questions[e.target.dataset.i].timeMins=parseInt(e.target.value)||1;});
+    }
+    window.removeQ = function(e){ const idx=+e.target.dataset.i; if(confirm('Delete question '+(idx+1)+'?')){ questions.splice(idx,1); renderQuestions(); } }
+    window.openZoomFromList = function(idx){ const q=questions[idx]; if(!q) return; showZoom(q.imgs[0]); }
+
+    // ===== EXAM START =====
+    startExamBtn.addEventListener('click', ()=>{
+      if(questions.length===0){ alert('Select at least one question.'); return; }
+      // build sections from subjects
+      const subjects = [...new Set(questions.map(q=>q.subject||'General'))];
+      exam.sections = subjects.map(s=>({name:s, qIdx: []}));
+      questions.forEach((q,i)=>{ const si = exam.sections.findIndex(S=>S.name===(q.subject||'General')); exam.sections[si].qIdx.push(i); });
+
+      exam.order = questions.map((_,i)=>i); exam.cur = 0; exam.records = questions.map(()=>({type:'single', single:null, multi:[], num:'', marked:false, status:'NV', timeSpent:0, openTs:null}));
+
+      // render tabs
+      sectionTabs.innerHTML='';
+      exam.sections.forEach((s,si)=>{
+        const btn = document.createElement('div'); btn.className='section-tab'+(si===0?' active':''); btn.textContent=s.name; btn.onclick=()=>switchSection(si);
+        sectionTabs.appendChild(btn);
+      });
+
+      totalQ.textContent = questions.length; curQIndex.textContent = 1; curSubject.textContent = questions[exam.order[0]].subject||'General';
+
+      // init palette
+      buildPalette();
+
+      // go to exam page
+      document.querySelector('button[data-page="exam"]').click();
+
+      // show instructions modal like real CBT
+      instModal.classList.add('show');
+    });
+
+    function switchSection(si){
+      exam.sectionIndex = si; document.querySelectorAll('.section-tab').forEach((t,i)=>t.classList.toggle('active', i===si));
+      // jump to first q of that section
+      const list = exam.sections[si].qIdx; if(list.length){ renderExamQuestion(list[0]); highlightPalette(); }
+    }
+
+    agreeStart.onclick = ()=>{ started = true; instModal.classList.remove('show'); startGlobalTimer(); renderExamQuestion( exam.sections[0].qIdx[0] ?? 0 ); };
+    closeInst.onclick = ()=>{ instModal.classList.remove('show'); }; // allow closing (timer starts only after agree)
+
+    function buildPalette(){
+      palette.innerHTML='';
+      exam.order.forEach((qi,i)=>{
+        const b=document.createElement('button'); b.className='pbtn'; b.textContent=i+1; b.dataset.idx=i; b.dataset.status=exam.records[qi].status; b.onclick=()=>{ renderExamQuestion(i); };
+        palette.appendChild(b);
+      });
+      highlightPalette();
+    }
+
+    function highlightPalette(){
+      const btns=palette.querySelectorAll('.pbtn'); btns.forEach((b,i)=>b.classList.toggle('active', i===exam.cur));
+      // update status colors
+      btns.forEach((b,i)=>{ const qi=exam.order[i]; b.dataset.status = exam.records[qi].status; });
+    }
+
+    function renderExamQuestion(idx){
+      stopQuestionTimer();
+      exam.cur = idx; const qi = exam.order[idx]; const q = questions[qi];
+      curQIndex.textContent = idx+1; curSubject.textContent = q.subject||'General';
+      qImages.innerHTML = q.imgs.map(u=>`<img src='${u}' onclick='showZoom("${u}")'>`).join('');
+
+      // restore answer UI per record
+      const rec = exam.records[qi];
+      // set type radio
+      atypeRadios.forEach(r=>{ r.checked = (r.value===rec.type); });
+      showAnswerWidget(rec.type);
+      restoreAnswerWidgets(rec);
+
+      // start timer for this question
+      exam.records[qi].openTs = Date.now();
+
+      // set status to at least Not Answered when visited
+      if(rec.status==='NV') rec.status='NA';
+      highlightPalette();
+    }
+
+    function showAnswerWidget(type){
+      mcqSingle.style.display = (type==='single')? 'flex':'none';
+      mcqMulti.style.display = (type==='multi')? 'flex':'none';
+      numAns.style.display = (type==='num')? 'flex':'none';
+    }
+
+    atypeRadios.forEach(r=>r.addEventListener('change',()=>{
+      const rec = exam.records[ exam.order[exam.cur] ]; rec.type = document.querySelector('input[name="atype"]:checked').value; showAnswerWidget(rec.type);
+    }));
+
+    function restoreAnswerWidgets(rec){
+      // single
+      document.querySelectorAll('input[name="opt"]').forEach(el=>{ el.checked = (rec.single===el.value); });
+      // multi
+      document.querySelectorAll('.mopt').forEach(el=>{ el.checked = rec.multi.includes(el.value); });
+      // num
+      numInput.value = rec.num||'';
+    }
+
+    // Save helpers
+    function collectCurrentAnswer(){
+      const rec = exam.records[ exam.order[exam.cur] ];
+      if(rec.type==='single'){
+        const sel = document.querySelector('input[name="opt"]:checked'); rec.single = sel? sel.value : null; rec.multi=[]; rec.num='';
+      } else if(rec.type==='multi'){
+        rec.multi = Array.from(document.querySelectorAll('.mopt:checked')).map(x=>x.value); rec.single=null; rec.num='';
+      } else {
+        rec.num = numInput.value.trim(); rec.single=null; rec.multi=[];
+      }
+      // set status based on answer + marked
+      const hasAns = (rec.type==='single' && rec.single) || (rec.type==='multi' && rec.multi.length) || (rec.type==='num' && rec.num !== '');
+      if(rec.marked){ rec.status = hasAns? 'AM' : 'M'; }
+      else { rec.status = hasAns? 'A' : 'NA'; }
+      highlightPalette();
+    }
+
+    function clearCurrentAnswer(){
+      const rec = exam.records[ exam.order[exam.cur] ]; rec.single=null; rec.multi=[]; rec.num='';
+      document.querySelectorAll('input[name="opt"]').forEach(el=>el.checked=false);
+      document.querySelectorAll('.mopt').forEach(el=>el.checked=false);
+      numInput.value='';
+      rec.status = rec.marked? 'M':'NA'; highlightPalette();
+    }
+
+    function stopQuestionTimer(){
+      const qi = exam.order[exam.cur]; const rec = exam.records[qi]; if(rec && rec.openTs){ const delta = Math.round((Date.now()-rec.openTs)/1000); rec.timeSpent += delta; rec.openTs=null; }
+    }
+
+    prevQBtn.addEventListener('click',()=>{ collectCurrentAnswer(); stopQuestionTimer(); if(exam.cur>0) renderExamQuestion(exam.cur-1); });
+    saveNextBtn.addEventListener('click',()=>{ collectCurrentAnswer(); stopQuestionTimer(); if(exam.cur < exam.order.length-1) renderExamQuestion(exam.cur+1); });
+    markNextBtn.addEventListener('click',()=>{ const rec = exam.records[ exam.order[exam.cur] ]; rec.marked = true; collectCurrentAnswer(); stopQuestionTimer(); if(exam.cur < exam.order.length-1) renderExamQuestion(exam.cur+1); });
+    clearRespBtn.addEventListener('click',()=>{ clearCurrentAnswer(); });
+
+    clearWork.addEventListener('click',()=>{ workpad.value=''; });
+
+    finishExamBtn.addEventListener('click',()=>{ if(confirm('Submit the exam?')) finishExam(); });
+
+    // Palette direct jump keeps state
+    palette.addEventListener('click',(e)=>{
+      const b = e.target.closest('.pbtn'); if(!b) return; collectCurrentAnswer(); stopQuestionTimer(); renderExamQuestion(+b.dataset.idx);
+    });
+
+    // keypad for numeric
+    keypad.addEventListener('click',(e)=>{
+      const t = e.target.closest('button'); if(!t) return; const val=t.textContent; if(val==='DEL'){ numInput.value = numInput.value.slice(0,-1); return; }
+      if(val==='CLR'){ numInput.value=''; return; }
+      if(val==='±'){ if(numInput.value.startsWith('-')) numInput.value=numInput.value.slice(1); else numInput.value='-'+numInput.value; return; }
+      if(val==='1/2'){ numInput.value = (numInput.value||'') + '0.5'; return; }
+      if(val==='√'){ numInput.value = (numInput.value||'') + 'sqrt('; return; }
+      if(val==='π'){ numInput.value = (numInput.value||'') + '3.1415926535'; return; }
+      if(val==='e'){ numInput.value = (numInput.value||'') + '2.718281828'; return; }
+      numInput.value += val;
+    });
+
+    // Timer
+    function formatTime(s){ const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return `${h}:${m}:${sec}`; }
+    function startGlobalTimer(){ if(globalInterval) clearInterval(globalInterval); globalInterval=setInterval(()=>{ GLOBAL_SECONDS--; globalTimerEl.textContent=formatTime(GLOBAL_SECONDS); timerTop.textContent=formatTime(GLOBAL_SECONDS); if(GLOBAL_SECONDS<=0){ clearInterval(globalInterval); alert('Time up! Auto-submitting.'); finishExam(); } },1000); }
+
+    function stopGlobalTimer(){ if(globalInterval) clearInterval(globalInterval); }
+
+    // ===== REPORT =====
+    const reportContent = document.getElementById('reportContent');
+    function finishExam(){
+      // finalize current
+      collectCurrentAnswer(); stopQuestionTimer(); stopGlobalTimer();
+      // build report
+      generateReport();
+      document.querySelector('button[data-page="report"]').click();
+    }
+
+    function generateReport(){
+      const subjectTimes = {};
+      exam.records.forEach((rec,i)=>{ const subj = questions[i].subject||'General'; subjectTimes[subj]=(subjectTimes[subj]||0)+rec.timeSpent; });
+      let html = `<div style="color:#cfe8ff"><h3>Exam Report</h3></div>`;
+      html += `<div style='margin-top:6px'><strong>Total time used:</strong> ${formatTime( (180*60) - GLOBAL_SECONDS )}</div>`;
+      html += `<h4 style='margin-top:12px'>Time by Subject</h4><ul>`;
+      for(const s in subjectTimes){ html += `<li>${s}: ${subjectTimes[s]} seconds</li>`; }
+      html += `</ul>`;
+      html += `<h4 style='margin-top:12px'>Responses</h4>`;
+      questions.forEach((q,idx)=>{
+        const rec = exam.records[idx];
+        const ans = rec.type==='single' ? (rec.single||'-') : rec.type==='multi' ? (rec.multi.join(',')||'-') : (rec.num||'-');
+        html += `<div style='margin-bottom:16px;padding:10px;border-radius:8px;background:#07101a'>`+
+                `<div style='font-weight:700;margin-bottom:8px'>Q${idx+1} — ${q.subject} — Time: ${rec.timeSpent}s — Status: ${rec.status}</div>`+
+                `<div style='display:flex;gap:8px;flex-wrap:wrap'>${q.imgs.map(u=>`<img src='${u}' style='max-width:320px;border-radius:6px'>`).join('')}</div>`+
+                `<div style='margin-top:8px'><strong>Answer:</strong> ${ans}</div>`+
+                `</div>`;
+      });
+      reportContent.innerHTML = html;
+
+      const fullHtml = `<!doctype html><html><head><meta charset='utf-8'><title>JEE Exam Report</title></head><body style='font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#071018;color:#e6eef6;padding:20px'>${html}</body></html>`;
+      const blob = new Blob([fullHtml], {type:'text/html'}); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'jee_exam_report.html'; a.textContent='Download report (HTML)'; a.style.display='inline-block'; a.style.marginTop='12px'; a.className='big-btn btn-green'; reportContent.appendChild(a);
+    }
+
+    // Zoom helpers (optional)
+    let zoomScale=1.0; function showZoom(src){ zoomImg.src=src; zoomImg.style.transform='scale(1)'; zoomScale=1; zoomModal.classList.add('show'); }
+    window.showZoom = showZoom;
+    zoomIn.addEventListener('click',()=>{ zoomScale+=0.2; zoomImg.style.transform=`scale(${zoomScale})`; });
+    zoomOut.addEventListener('click',()=>{ zoomScale=Math.max(0.4, zoomScale-0.2); zoomImg.style.transform=`scale(${zoomScale})`; });
+    zoomReset.addEventListener('click',()=>{ zoomScale=1; zoomImg.style.transform='scale(1)'; });
+    closeZoom.addEventListener('click',()=>{ zoomModal.classList.remove('show'); zoomImg.src=''; });
+    zoomModal.addEventListener('click',(e)=>{ if(e.target===zoomModal){ zoomModal.classList.remove('show'); zoomImg.src=''; } });
+
+    // responsive re-render of PDF page
+    window.addEventListener('resize', ()=>{ if(pdfDoc){ renderPage(currentPage); } });
+
+    // warn on unload if answers exist
+    window.addEventListener('beforeunload', (e)=>{ if(exam.records && exam.records.some(r=> (r.single||r.multi?.length||r.num) )) e.returnValue='You have unsaved progress — leave?'; });
+  </script>
+</body>
+</html>
